@@ -1,14 +1,3 @@
-# v2ray-agent
-
-- [感谢 JetBrains 提供的非商业开源软件开发授权](https://www.jetbrains.com/?from=v2ray-agent)
-
-
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Telegram Channel](https://img.shields.io/badge/Telegram-Channel-blue)](https://t.me/v2rayAgentChannel)
-[![Telegram Group](https://img.shields.io/badge/Telegram-Group-blue)](https://t.me/technologyshare)
-[![Official Website](https://img.shields.io/badge/Website-v2ray--agent.com-blue)](https://www.v2ray-agent.com/)
-[![English Version](https://img.shields.io/badge/English-Version-blue)](documents/en/README_EN.md)
-
 Xray-core/sing-box 一键脚本快速安装
 
 ## 功能
@@ -21,7 +10,7 @@ Xray-core/sing-box 一键脚本快速安装
 *   **分流管理:** 提供wireguard、IPv6、Socks5、DNS、VMess(ws)、SNI反向代理，可用于解锁流媒体、规避IP验证等作用.
 *   **目标域名管理:** 提供域名黑名单管理，可用于禁止访问指定网站.
 *   **BT下载管理:** 可用于禁止下载P2P相关内容.
-*   **更多内容请访问[官方网站](https://www.v2ray-agent.com/categories/jiao-cheng)、[备用](https://www.592083.com/categories/jiao-cheng)、[X](https://x.com/v2rayagent)**
+*
 
 ## 快速开始
 
@@ -47,9 +36,7 @@ vasma
 *   [脚本异常处理](https://www.v2ray-agent.com/archives/1684115970026)   
 *   [VPS选购攻略](https://www.v2ray-agent.com/archives/1679975663984)
 *   [垃圾VPS大救星，hysteria2最新协议一键搭建](https://www.v2ray-agent.com/archives/1697162969693)
-*   [RackNerd低价 联通AS4837套餐，年付10美起](https://www.v2ray-agent.com/archives/racknerdtao-can-zheng-li-nian-fu-10mei-yuan)
-*   [搬瓦工优质套餐推荐](https://www.v2ray-agent.com/archives/2023nian-ban-wa-gong-ji-fang-tui-jian)
-*   [DMIT优质套餐推荐](https://www.v2ray-agent.com/archives/1679159868033)
+
 
 ## 社区与支持
 
