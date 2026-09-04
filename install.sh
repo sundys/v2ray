@@ -200,6 +200,7 @@ initVar() {
     # xray-core reality serverName publicKey
     xrayVLESSRealityServerName=
     xrayVLESSRealityPort=
+    xrayVLESSRealityVisionPort=
     xrayVLESSRealityXHTTPServerName=
     xrayVLESSRealityXHTTPort=
     #    xrayVLESSRealityPublicKey=
@@ -425,6 +426,7 @@ readInstallProtocolType() {
     frontingType=
 
     xrayVLESSRealityPort=
+    xrayVLESSRealityVisionPort=
     xrayVLESSRealityServerName=
 
     xrayVLESSRealityXHTTPort=
@@ -476,6 +478,8 @@ readInstallProtocolType() {
             xrayVLESSRealityXHTTPServerName=$(jq -r .inbounds[0].streamSettings.realitySettings.serverNames[0] "${row}.json")
 
             currentRealityXHTTPPublicKey=$(jq -r .inbounds[0].streamSettings.realitySettings.publicKey "${row}.json")
+            currentRealityMldsa65Seed=$(jq -r '.inbounds[0].streamSettings.realitySettings.mldsa65Seed // empty' "${row}.json")
+            currentRealityMldsa65Verify=$(jq -r '.inbounds[0].streamSettings.realitySettings.mldsa65Verify // empty' "${row}.json")
             #            currentRealityXHTTPPrivateKey=$(jq -r .inbounds[0].streamSettings.realitySettings.privateKey "${row}.json")
 
             #            if [[ "${coreInstallType}" == "2" ]]; then
@@ -523,8 +527,8 @@ readInstallProtocolType() {
                 currentRealityPublicKey=$(jq -r .inbounds[1].streamSettings.realitySettings.publicKey "${row}.json")
                 currentRealityPrivateKey=$(jq -r .inbounds[1].streamSettings.realitySettings.privateKey "${row}.json")
 
-                currentRealityMldsa65Seed=$(jq -r .inbounds[1].streamSettings.realitySettings.mldsa65Seed "${row}.json")
-                currentRealityMldsa65Verify=$(jq -r .inbounds[1].streamSettings.realitySettings.mldsa65Verify "${row}.json")
+                currentRealityMldsa65Seed=$(jq -r '.inbounds[1].streamSettings.realitySettings.mldsa65Seed // empty' "${row}.json")
+                currentRealityMldsa65Verify=$(jq -r '.inbounds[1].streamSettings.realitySettings.mldsa65Verify // empty' "${row}.json")
 
                 frontingTypeReality=07_VLESS_vision_reality_inbounds
 
@@ -3262,43 +3266,6 @@ initTuicProtocol() {
 #EOF
 #}
 
-# 初始化singbox route配置
-initSingBoxRouteConfig() {
-    downloadSingBoxGeositeDB
-    local outboundTag=$1
-    if [[ ! -f "${singBoxConfigPath}${outboundTag}_route.json" ]]; then
-        cat <<EOF >"${singBoxConfigPath}${outboundTag}_route.json"
-{
-    "route": {
-        "geosite": {
-            "path": "${singBoxConfigPath}geosite.db"
-        },
-        "rules": [
-            {
-                "domain": [
-                ],
-                "geosite": [
-                ],
-                "outbound": "${outboundTag}"
-            }
-        ]
-    }
-}
-EOF
-    fi
-}
-# 下载sing-box geosite db
-downloadSingBoxGeositeDB() {
-    if [[ ! -f "${singBoxConfigPath}geosite.db" ]]; then
-        if [[ "${release}" == "alpine" ]]; then
-            wget -q -P "${singBoxConfigPath}" https://github.com/Johnshall/sing-geosite/releases/latest/download/geosite.db
-        else
-            wget -q "${wgetShowProgressStatus}" -P "${singBoxConfigPath}" https://github.com/Johnshall/sing-geosite/releases/latest/download/geosite.db
-        fi
-
-    fi
-}
-
 # 添加sing-box路由规则
 addSingBoxRouteRule() {
     local outboundTag=$1
@@ -3376,7 +3343,10 @@ addSingBoxOutbound() {
              "type": "direct",
              "tag": "${tag}",
              "detour": "${detour}",
-             "domain_strategy": "${type}_only"
+             "domain_resolver": {
+                 "server": "local",
+                 "strategy": "${type}_only"
+             }
         }
     ]
 }
@@ -3412,7 +3382,10 @@ EOF
         {
              "type": "direct",
              "tag": "${tag}",
-             "domain_strategy": "${type}_only"
+             "domain_resolver": {
+                 "server": "local",
+                 "strategy": "${type}_only"
+             }
         }
     ]
 }
@@ -3714,8 +3687,87 @@ singBoxHysteria2Install() {
     showAccounts 4
 }
 
+# 初始化sing-box本地DNS解析器
+initSingBoxLocalDNSConfig() {
+    local singBoxConfigDir="/etc/v2ray-agent/sing-box/conf/config"
+    local singBoxDNSConfigPath="${singBoxConfigDir}/dns.json"
+
+    mkdir -p "${singBoxConfigDir}"
+    if [[ -f "${singBoxDNSConfigPath}" ]] && jq empty "${singBoxDNSConfigPath}" >/dev/null 2>&1; then
+        jq '
+          . = (if type == "object" then . else {} end)
+          | .dns = (if (.dns | type) == "object" then .dns else {} end)
+          | .dns.servers = (if ((.dns.servers | type) == "array" and all(.dns.servers[]?; type == "object")) then .dns.servers else [] end)
+          | if any(.dns.servers[]?; .tag == "local") then .
+            elif any(.dns.servers[]?; .type == "local" and ((.tag // "") == "")) then
+              .dns.servers |= map(if .type == "local" and ((.tag // "") == "") then .tag = "local" else . end)
+            else
+              .dns.servers += [{"tag": "local", "type": "local"}]
+            end
+        ' "${singBoxDNSConfigPath}" >"${singBoxDNSConfigPath}.tmp" && mv "${singBoxDNSConfigPath}.tmp" "${singBoxDNSConfigPath}"
+    else
+        cat <<EOF >"${singBoxDNSConfigPath}"
+{
+    "dns": {
+        "servers": [
+            {
+                "tag": "local",
+                "type": "local"
+            }
+        ]
+    }
+}
+EOF
+    fi
+}
+
+# 迁移脚本旧版本生成的sing-box出站配置
+migrateSingBoxLegacyOutboundConfig() {
+    local singBoxConfigDir=${1:-/etc/v2ray-agent/sing-box/conf/config}
+    local outboundTag=
+    local outboundConfigPath=
+
+    for outboundTag in IPv4_out IPv6_out; do
+        outboundConfigPath="${singBoxConfigDir}/${outboundTag}.json"
+        if [[ -f "${outboundConfigPath}" ]] && jq -e 'any(.outbounds[]?; .type == "direct" and (.domain_strategy? != null))' "${outboundConfigPath}" >/dev/null 2>&1; then
+            jq '
+              .outbounds |= map(
+                if .type == "direct" and (.domain_strategy? != null) then
+                  .domain_resolver = {
+                    "server": "local",
+                    "strategy": .domain_strategy
+                  }
+                  | del(.domain_strategy)
+                else . end
+              )
+            ' "${outboundConfigPath}" >"${outboundConfigPath}.tmp" && mv "${outboundConfigPath}.tmp" "${outboundConfigPath}"
+        fi
+    done
+}
+
+# 初始化sing-box远程规则集HTTP客户端
+initSingBoxHTTPClientConfig() {
+    local singBoxConfigDir="/etc/v2ray-agent/sing-box/conf/config"
+
+    initSingBoxLocalDNSConfig
+    migrateSingBoxLegacyOutboundConfig
+    cat <<EOF >"${singBoxConfigDir}/00_http_clients.json"
+{
+  "http_clients": [
+    {
+      "tag": "rule_set_http"
+    }
+  ],
+  "route": {
+    "default_http_client": "rule_set_http"
+  }
+}
+EOF
+}
+
 # 合并config
 singBoxMergeConfig() {
+    initSingBoxHTTPClientConfig
     rm /etc/v2ray-agent/sing-box/conf/config.json >/dev/null 2>&1
     /etc/v2ray-agent/sing-box/sing-box merge config.json -C /etc/v2ray-agent/sing-box/conf/config/ -D /etc/v2ray-agent/sing-box/conf/ >/dev/null 2>&1
 }
@@ -4015,6 +4067,9 @@ EOF
             ],
             "privateKey": "${realityPrivateKey}",
             "publicKey": "${realityPublicKey}",
+            "mldsa65Seed": "${realityMldsa65Seed}",
+            "mldsa65Verify": "${realityMldsa65Verify}",
+            "minClientVer": "1.8.2",
             "maxTimeDiff": 70000,
             "shortIds": [
                 "",
@@ -4183,6 +4238,7 @@ EOF
           "publicKey": "${realityPublicKey}",
           "mldsa65Seed": "${realityMldsa65Seed}",
           "mldsa65Verify": "${realityMldsa65Verify}",
+          "minClientVer": "1.8.2",
           "maxTimeDiff": 70000,
           "shortIds": [
             "",
@@ -4869,13 +4925,20 @@ EOF
 
     elif [[ "${type}" == "vlessXHTTP" ]]; then
 
+        local xhttpMldsa65Param=
+        local xhttpMldsa65ParamEncoded=
+        if [[ -n "${currentRealityMldsa65Verify}" && "${currentRealityMldsa65Verify}" != "null" ]]; then
+            xhttpMldsa65Param="&pqv=${currentRealityMldsa65Verify}"
+            xhttpMldsa65ParamEncoded="%26pqv%3D${currentRealityMldsa65Verify}"
+        fi
+
         echoContent yellow " ---> 通用格式(VLESS+reality+XHTTP)"
-        echoContent green "    vless://${id}@${add}:${port}?encryption=none&security=reality&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&host=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}\n"
+        echoContent green "    vless://${id}@${add}:${port}?encryption=none&security=reality${xhttpMldsa65Param}&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&host=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}\n"
 
         echoContent yellow " ---> 格式化明文(VLESS+reality+XHTTP)"
         echoContent green "协议类型:VLESS reality，地址:${add}，publicKey:${currentRealityXHTTPPublicKey}，shortId: 6ba85179e30d4fc2,serverNames：${xrayVLESSRealityXHTTPServerName}，端口:${port}，路径：${path}，SNI:${xrayVLESSRealityXHTTPServerName}，伪装域名:${xrayVLESSRealityXHTTPServerName}，用户ID:${id}，传输方式:xhttp，账户名:${email}\n"
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/default/${user}"
-vless://${id}@${add}:${port}?encryption=none&security=reality&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}
+vless://${id}@${add}:${port}?encryption=none&security=reality${xhttpMldsa65Param}&type=xhttp&sni=${xrayVLESSRealityXHTTPServerName}&fp=chrome&path=${path}&pbk=${currentRealityXHTTPPublicKey}&sid=6ba85179e30d4fc2#${email}
 EOF
 
         cat <<EOF >>"/etc/v2ray-agent/subscribe_local/clashMeta/${user}"
@@ -4900,7 +4963,7 @@ EOF
 EOF
 
         echoContent yellow " ---> 二维码 VLESS(VLESS+reality+XHTTP)"
-        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${port}%3Fencryption%3Dnone%26security%3Dreality%26type%3Dxhttp%26sni%3D${xrayVLESSRealityXHTTPServerName}%26fp%3Dchrome%26path%3D${path}%26host%3D${xrayVLESSRealityXHTTPServerName}%26pbk%3D${currentRealityXHTTPPublicKey}%26sid%3D6ba85179e30d4fc2%23${email}\n"
+        echoContent green "    https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=vless%3A%2F%2F${id}%40${add}%3A${port}%3Fencryption%3Dnone%26security%3Dreality${xhttpMldsa65ParamEncoded}%26type%3Dxhttp%26sni%3D${xrayVLESSRealityXHTTPServerName}%26fp%3Dchrome%26path%3D${path}%26host%3D${xrayVLESSRealityXHTTPServerName}%26pbk%3D${currentRealityXHTTPPublicKey}%26sid%3D6ba85179e30d4fc2%23${email}\n"
 
     elif
         [[ "${type}" == "vlessgrpc" ]]
@@ -5229,6 +5292,20 @@ EOF
 
 }
 
+# 获取Reality订阅端口
+getRealitySubscriptionPort() {
+    local protocol=$1
+    if [[ "${coreInstallType}" == "2" ]]; then
+        if [[ "${protocol}" == "grpc" ]]; then
+            printf '%s\n' "${singBoxVLESSRealityGRPCPort}"
+        else
+            printf '%s\n' "${singBoxVLESSRealityVisionPort}"
+        fi
+    else
+        printf '%s\n' "${xrayVLESSRealityVisionPort}"
+    fi
+}
+
 # 账号
 showAccounts() {
     readInstallType
@@ -5397,7 +5474,7 @@ showAccounts() {
 
             echoContent skyBlue "\n ---> 账号:${email}"
             echo
-            defaultBase64Code vlessReality "${xrayVLESSRealityVisionPort}${singBoxVLESSRealityVisionPort}" "${email}" "$(echo "${user}" | jq -r .id//.uuid)"
+            defaultBase64Code vlessReality "$(getRealitySubscriptionPort vision)" "${email}" "$(echo "${user}" | jq -r .id//.uuid)"
         done
     fi
     # VLESS reality gRPC
@@ -5409,7 +5486,7 @@ showAccounts() {
 
             echoContent skyBlue "\n ---> 账号:${email}"
             echo
-            defaultBase64Code vlessRealityGRPC "${xrayVLESSRealityVisionPort}${singBoxVLESSRealityGRPCPort}" "${email}" "$(echo "${user}" | jq -r .id//.uuid)"
+            defaultBase64Code vlessRealityGRPC "$(getRealitySubscriptionPort grpc)" "${email}" "$(echo "${user}" | jq -r .id//.uuid)"
         done
     fi
     # tuic
@@ -7077,7 +7154,7 @@ addSingBoxGeoIPRouteRule() {
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-${geoipCode}.srs",
-        "download_detour": "01_direct_outbound"
+        "http_client": "rule_set_http"
       }
     ]
   }
@@ -7770,7 +7847,7 @@ initSingBoxRules() {
             matchedRuleName=$(getDLCGeositeName "${normalizedLine}" "/etc/v2ray-agent/sing-box")
 
             if [[ -n "${matchedRuleName}" ]]; then
-                ruleSet=$(echo "${ruleSet}" | jq -r ". += [{\"tag\":\"${matchedRuleName}_$2\",\"type\":\"remote\",\"format\":\"binary\",\"url\":\"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-${matchedRuleName}.srs\",\"download_detour\":\"01_direct_outbound\"}]")
+                ruleSet=$(echo "${ruleSet}" | jq -r ". += [{\"tag\":\"${matchedRuleName}_$2\",\"type\":\"remote\",\"format\":\"binary\",\"url\":\"https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-${matchedRuleName}.srs\",\"http_client\":\"rule_set_http\"}]")
             else
                 domainRules=$(echo "${domainRules}" | jq -r --arg reg "^([a-zA-Z0-9_-]+\\.)*${normalizedLine//./\\.}" '. += [$reg]')
             fi
@@ -7842,13 +7919,20 @@ setSocks5InboundRouting() {
 
 # 设置sniff routing规则
 setSniffRouting() {
+    initSingBoxLocalDNSConfig
+
     cat <<EOF >"/etc/v2ray-agent/sing-box/conf/config/sniff.json"
 {
     "route":{
+        "default_domain_resolver": "local",
         "rules":[
           {
             "action": "sniff",
             "timeout": "1s"
+          },
+          {
+            "protocol": "dns",
+            "action": "hijack-dns"
           }
         ]
     }
@@ -8292,12 +8376,13 @@ removeUnlockDNS() {
 EOF
     fi
 
-    if [[ "${coreInstallType}" == "2" && -f "${singBoxConfigPath}dns.json" ]]; then
+    if [[ -n "${singBoxConfigPath}" && -f "${singBoxConfigPath}dns.json" ]]; then
         cat <<EOF >${singBoxConfigPath}dns.json
 {
     "dns": {
         "servers":[
             {
+                "tag":"local",
                 "type":"local"
             }
         ]
@@ -8327,12 +8412,13 @@ removeUnlockSNI() {
 EOF
     fi
 
-    if [[ "${coreInstallType}" == "2" && -f "${singBoxConfigPath}dns.json" ]]; then
+    if [[ -n "${singBoxConfigPath}" && -f "${singBoxConfigPath}dns.json" ]]; then
         cat <<EOF >${singBoxConfigPath}dns.json
 {
     "dns": {
         "servers":[
             {
+                "tag":"local",
                 "type":"local"
             }
         ]
@@ -9566,7 +9652,7 @@ initRealityMldsa65() {
         length=$(/etc/v2ray-agent/xray/xray tls ping "${realityServerName}:${realityDomainPort}" | grep "Certificate chain's total length:" | awk '{print $5}' | head -1)
 
         if [ "$length" -gt 3500 ]; then
-            if [[ -n "${currentRealityMldsa65}" && -z "${lastInstallationConfig}" ]]; then
+            if [[ -n "${currentRealityMldsa65Seed}" && -z "${lastInstallationConfig}" ]]; then
                 read -r -p "读取到上次安装记录，是否使用上次安装时的Seed/Verify ？[y/n]:" historyMldsa65Status
                 if [[ "${historyMldsa65Status}" == "y" ]]; then
                     realityMldsa65Seed=${currentRealityMldsa65Seed}
@@ -9602,7 +9688,7 @@ checkRealityDest() {
     local traceResult=
     traceResult=$(curl -s "https://$(echo "${realityDestDomain}" | cut -d ':' -f 1)/cdn-cgi/trace" | grep "visit_scheme=https")
     if [[ -n "${traceResult}" ]]; then
-        echoContent red "\n ---> 检测到使用的域名，托管在cloudflare并开启了代理，使用此类型域名可能导致VPS流量被其他人使用[不建议使用]\n"
+        echoContent red "\n ---> 禁止使用已启用 Cloudflare 代理的域名。强制使用将导致 VPS 流量被他人滥用，相关后果由您自行承担。\n"
         read -r -p "是否继续 ？[y/n]" setRealityDestStatus
         if [[ "${setRealityDestStatus}" != 'y' ]]; then
             exit 0
@@ -9617,7 +9703,7 @@ initRealityClientServersName() {
     if [[ "${coreInstallType}" == "1" || "${selectCoreType}" == "1" ]]; then
         realityDestDomainList="download-installer.cdn.mozilla.net,addons.mozilla.org,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,one-piece.com,lol.secure.dyn.riotcdn.net,www.lovelive-anime.jp,academy.nvidia.com,dl.google.com,www.google-analytics.com,www.caltech.edu,www.calstatela.edu,www.suny.edu,www.suffolk.edu,www.python.org,vuejs-jp.org,vuejs.org,zh-hk.vuejs.org,react.dev,www.java.com,www.oracle.com,www.mysql.com,www.mongodb.com,redis.io,cname.vercel-dns.com,vercel-dns.com,www.swift.com,academy.nvidia.com,www.swift.com,www.cisco.com,www.asus.com,www.samsung.com,www.amd.com,www.umcg.nl,www.fom-international.com,www.u-can.co.jp,github.io"
     elif [[ "${coreInstallType}" == "2" || "${selectCoreType}" == "2" ]]; then
-        realityDestDomainList="download-installer.cdn.mozilla.net,addons.mozilla.org,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,one-piece.com,lol.secure.dyn.riotcdn.net,www.lovelive-anime.jp,academy.nvidia.com,dl.google.com,www.google-analytics.com,www.python.org,vuejs-jp.org,vuejs.org,zh-hk.vuejs.org,react.dev,www.java.com,www.oracle.com,www.mysql.com,www.mongodb.com,cname.vercel-dns.com,vercel-dns.com,www.swift.com,academy.nvidia.com,www.swift.com,www.cisco.com,www.asus.com,www.samsung.com,www.amd.com,www.fom-international.com,github.io"
+        realityDestDomainList="download-installer.cdn.mozilla.net,addons.mozilla.org,s0.awsstatic.com,d1.awsstatic.com,images-na.ssl-images-amazon.com,m.media-amazon.com,player.live-video.net,one-piece.com,www.lovelive-anime.jp,academy.nvidia.com,dl.google.com,www.google-analytics.com,www.python.org,vuejs-jp.org,vuejs.org,zh-hk.vuejs.org,react.dev,www.oracle.com,www.mysql.com,www.mongodb.com,cname.vercel-dns.com,vercel-dns.com,www.swift.com,academy.nvidia.com,www.swift.com,www.cisco.com,www.asus.com,www.samsung.com,www.amd.com,www.fom-international.com,github.io"
     fi
     if [[ -n "${realityServerName}" && -z "${lastInstallationConfig}" ]]; then
         if echo ${realityDestDomainList} | grep -q "${realityServerName}"; then
@@ -9683,6 +9769,8 @@ initRealityClientServersName() {
         fi
     fi
 
+    realityDestDomain="${realityServerName}:${realityDomainPort}"
+    checkRealityDest
     echoContent yellow "\n ---> 客户端可用域名: ${realityServerName}:${realityDomainPort}\n"
 }
 # 初始化reality端口
@@ -9960,7 +10048,7 @@ menu() {
     cd "$HOME" || exit
     echoContent red "\n=============================================================="
     echoContent green "作者：mack-a"
-    echoContent green "当前版本：v3.5.20"
+    echoContent green "当前版本：v3.5.23"
     echoContent green "Github：https://github.com/sundys/v2ray"
     echoContent green "描述：八合一共存脚本\c"
     showInstallStatus

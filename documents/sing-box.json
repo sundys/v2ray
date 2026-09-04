@@ -4,6 +4,12 @@
     "level": "info",
     "timestamp": true
   },
+  "http_clients": [
+    {
+      "tag": "rule_set_http",
+      "detour": "本地直连"
+    }
+  ],
   "experimental": {
     "clash_api": {
       "external_controller": "127.0.0.1:9090",
@@ -24,8 +30,7 @@
         "server": "1.1.1.1",
         "server_port": 443,
         "detour": "自动选择",
-        "path": "/dns-query",
-        "domain_resolver": "dns_resolver"
+        "path": "/dns-query"
       },
       {
         "tag": "dns_direct",
@@ -33,18 +38,12 @@
         "server": "dns.alidns.com",
         "server_port": 443,
         "path": "/dns-query",
-        "domain_resolver": "dns_resolver"
+        "domain_resolver": "local"
       },
       {
         "tag": "google",
         "type": "tls",
-        "server": "8.8.4.4",
-        "domain_resolver": "dns_resolver"
-      },
-      {
-        "tag": "dns_resolver",
-        "type": "udp",
-        "server": "114.114.114.114"
+        "server": "8.8.4.4"
       },
       {
         "type": "local",
@@ -73,7 +72,6 @@
         "server": "dns_proxy"
       }
     ],
-    "independent_cache": true,
     "strategy": "prefer_ipv4",
     "final": "dns_direct"
   },
@@ -83,22 +81,9 @@
       "tag": "tun-in",
       "stack": "system",
       "address": [
-        "172.18.0.1/30",
+        "172.19.0.1/30",
         "fdfe:dcba:9876::1/126"
       ],
-      "route_address": [
-        "0.0.0.0/1",
-        "128.0.0.0/1",
-        "::/1",
-        "8000::/1"
-      ],
-      "route_exclude_address": [
-        "192.168.0.0/16",
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "fc00::/7"
-      ],
-      "mtu": 9000,
       "auto_route": true,
       "strict_route": true
     },
@@ -205,15 +190,23 @@
       "default": "direct"
     },
     {
+      "type": "selector",
+      "tag": "漏网之鱼",
+      "outbounds": [
+        "自动选择",
+        "手动切换",
+        "direct"
+      ],
+      "default": "自动选择"
+    },
+    {
       "tag": "direct",
       "type": "direct"
     }
   ],
   "route": {
-    "default_domain_resolver": {
-      "server": "dns_resolver",
-      "strategy": "prefer_ipv4"
-    },
+    "default_http_client": "rule_set_http",
+    "default_domain_resolver": "local",
     "rule_set": [
       {
         "tag": "geosite-category-ads-all",
@@ -344,12 +337,6 @@
     ],
     "rules": [
       {
-        "inbound": "mixed-in",
-        "action": "sniff",
-        "timeout": "1s"
-      },
-      {
-        "inbound": "tun-in",
         "action": "sniff",
         "timeout": "1s"
       },
@@ -454,8 +441,7 @@
         "outbound": "本地直连"
       }
     ],
-    "final": "本地直连",
+    "final": "漏网之鱼",
     "auto_detect_interface": true
   }
 }
-
