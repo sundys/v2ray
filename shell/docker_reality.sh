@@ -1629,7 +1629,7 @@ promptExistingInstallAction() {
     echoContent "skyBlue" ""
     echoContent green "作者：mack-a"
     echoContent green "当前版本：v0.0.1"
-    echoContent green "Github：https://github.com/mack-a/v2ray-agent"
+    echoContent green "Github：https://github.com/sundys/v2ray"
     echoContent green "描述：八合一docker版"
     if [[ ${hasConfig} -ne 0 && ${hasContainer} -ne 0 ]]; then
         echoContent "skyBlue" "─── 未检测到现有 Docker Reality 安装 ─────────────────────"

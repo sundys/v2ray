@@ -2290,9 +2290,9 @@ nginxBlog() {
             #  randomNum=$((RANDOM % 6 + 1))
             randomNum=$(randomNum 1 9)
             if [[ "${release}" == "alpine" ]]; then
-                wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+                wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
             else
-                wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+                wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
             fi
 
             unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
@@ -2305,9 +2305,9 @@ nginxBlog() {
         rm -rf "${nginxStaticPath}*"
 
         if [[ "${release}" == "alpine" ]]; then
-            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
         else
-            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
         fi
 
         unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
@@ -5942,9 +5942,9 @@ updateNginxBlog() {
         rm -rf "${nginxStaticPath}*"
 
         if [[ "${release}" == "alpine" ]]; then
-            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
+            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
         else
-            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
+            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
         fi
 
         unzip -o "${nginxStaticPath}html${selectInstallNginxBlogType}.zip" -d "${nginxStaticPath}" >/dev/null
@@ -6585,9 +6585,9 @@ updateV2RayAgent() {
     echoContent skyBlue "\nProgress$1/${totalProgress}: Update v2ray-agent script"
     rm -rf /etc/v2ray-agent/install.sh
     if [[ "${release}" == "alpine" ]]; then
-        wget -c -q -O /etc/v2ray-agent/install.sh --no-check-certificate "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/shell/install_en.sh"
+        wget -c -q -O /etc/v2ray-agent/install.sh --no-check-certificate "https://raw.githubusercontent.com/sundys/v2ray/master/shell/install_en.sh"
     else
-        wget -c -q "${wgetShowProgressStatus}" -O /etc/v2ray-agent/install.sh --no-check-certificate "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/shell/install_en.sh"
+        wget -c -q "${wgetShowProgressStatus}" -O /etc/v2ray-agent/install.sh --no-check-certificate "https://raw.githubusercontent.com/sundys/v2ray/master/shell/install_en.sh"
     fi
 
     sudo chmod 700 /etc/v2ray-agent/install.sh
@@ -6598,7 +6598,7 @@ updateV2RayAgent() {
     echoContent yellow " ---> Please manually execute [vasma] to open the script"
     echoContent green " ---> Current version: ${version}\n"
     echoContent yellow "If the update fails, please manually execute the following command\n"
-    echoContent skyBlue "wget -O /root/install.sh --no-check-certificate https://raw.githubusercontent.com/mack-a/v2ray-agent/master/shell/install_en.sh && chmod 700 /root/install.sh && /root/install.sh"
+    echoContent skyBlue "wget -O /root/install.sh --no-check-certificate https://raw.githubusercontent.com/sundys/v2ray/master/shell/install_en.sh && chmod 700 /root/install.sh && /root/install.sh"
     echo
     exit 0
 }
@@ -9724,9 +9724,9 @@ subscribe() {
 
                         echoContent skyBlue " ---> Download sing-box generic configuration file "
                         if [[ "${release}" == "alpine" ]]; then
-                            wget -O "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}" -q "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/documents/sing-box.json"
+                            wget -O "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}" -q "https://raw.githubusercontent.com/sundys/v2ray/master/documents/sing-box.json"
                         else
-                            wget -O "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}" -q "${wgetShowProgressStatus}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/documents/sing-box.json"
+                            wget -O "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}" -q "${wgetShowProgressStatus}" "https://raw.githubusercontent.com/sundys/v2ray/master/documents/sing-box.json"
                         fi
 
                         jq ".outbounds=$(jq ".outbounds|map(if has(\"outbounds\") then .outbounds += $(jq ".|map(.tag)" "/etc/v2ray-agent/subscribe_local/sing-box/${email}") else . end)" "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}")" "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}" >"/etc/v2ray-agent/subscribe/sing-box/${emailMd5}_tmp" && mv "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}_tmp" "/etc/v2ray-agent/subscribe/sing-box/${emailMd5}"
@@ -10342,20 +10342,10 @@ menu() {
     echoContent red "\n=============================================================="
     echoContent green "Author: mack-a"
     echoContent green " Current version: v3.5.25"
-    echoContent green "Github：https://github.com/mack-a/v2ray-agent"
+    echoContent green "Github：https://github.com/sundys/v2ray"
     echoContent green "Description: 8-in-1 coexistence script\c"
     showInstallStatus
     checkWgetShowProgress
-    echoContent red "\n============================ Promotion area================ ============"
-    echoContent red "                                              "
-    echoContent yellow "VPS buying guide "
-    echoContent green "https://www.v2ray-agent.com/archives/1679975663984"
-    echoContent yellow " Annual 10 USD budget VPS AS4837"
-    echoContent green "https://www.v2ray-agent.com/archives/racknerdtao-can-zheng-li-nian-fu-10mei-yuan"
-    echoContent yellow " Premium standard plans DMIT CN2-GIA"
-    echoContent green "https://www.v2ray-agent.com/archives/186cee7b-9459-4e57-b9b2-b07a4f36931c"
-    echoContent yellow "VPS probe : https://ping.v2ray-agent.com/"
-    echoContent red "                                              "
     echoContent red "=============================================================="
     if [[ -n "${coreInstallType}" ]]; then
         echoContent yellow "1.Reinstall"
