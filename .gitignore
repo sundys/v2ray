@@ -16,3 +16,4 @@ checks
 /.superpowers/
 /documents/issue*
 /documents/socks5-multi-outbound-routing-design.md
+*.forkpatch.bak

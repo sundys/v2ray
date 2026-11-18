@@ -33,7 +33,7 @@ An installation and management script for Xray-core and sing-box, with regular h
 ### Installation
 
 ```
-wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
+wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/sundys/v2ray/master/install.sh" && chmod 700 /root/install.sh && /root/install.sh
 ```
 
 ### Usage
@@ -47,7 +47,7 @@ vasma
 ### Docker Reality
 
 ```
-wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/shell/docker_reality_en.sh" && chmod 700 /root/docker_reality_en.sh && /root/docker_reality_en.sh
+wget -P /root -N --no-check-certificate "https://raw.githubusercontent.com/sundys/v2ray/master/shell/docker_reality_en.sh" && chmod 700 /root/docker_reality_en.sh && /root/docker_reality_en.sh
 ```
 
 The Docker launcher supports Reality Vision, Reality XHTTP, or both modes. After installation, run `vasmad` to reopen its menu. See the [Docker Reality guide](https://www.v2ray-agent.com/archives/019e1b57-92b3-70ab-8919-cdf8c0bb4fe9).
@@ -68,7 +68,7 @@ The Docker launcher supports Reality Vision, Reality XHTTP, or both modes. After
 
 *   **Telegram:** [Channel](https://t.me/v2rayAgentChannel) | [Group](https://t.me/technologyshare)
 *   **Website:** [Official](https://www.v2ray-agent.com/) | [Backup](https://www.592083.xyz/)
-*   **Feedback:** [Submit an issue](https://github.com/mack-a/v2ray-agent/issues)
+*   **Feedback:** [Submit an issue](https://github.com/sundys/v2ray/issues)
 *   **X:** [Link](https://x.com/v2rayagent)
 
 ## Donation

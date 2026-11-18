@@ -1,0 +1,2 @@
+# fork-lock: 补丁脚本按 LF 检出，避免 CRLF 影响 bash 解析（目标文件行尾由脚本自行保持）
+fork-patch.sh text eol=lf

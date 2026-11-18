@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# >>> fork-lock: sundys/v2ray 定制版（上游 mack-a/v2ray-agent）
+# 定制点均以 fork-lock 注释标记；合并上游后执行 fork-patch.sh 重新应用：
+#   1) 模板/脚本下载地址 -> sundys/v2ray  2) 伪装站菜单 1-9 标题  3) 移除主菜单推广区广告
+# <<< fork-lock
 # -------------------------------------------------------------
 # Detection area
 #------------------------------------------------ ----------
@@ -2496,6 +2500,7 @@ randomNum() {
     fi
 }
 # Nginx disguise blog
+# fork-lock: 本函数内模板下载地址指向本 fork (sundys/v2ray)
 nginxBlog() {
     if [[ -n "$1" ]]; then
         echoContent skyBlue "\nProgress$1/${totalProgress}: Add fake site"
@@ -2516,9 +2521,9 @@ nginxBlog() {
             #  randomNum=$((RANDOM % 6 + 1))
             randomNum=$(randomNum 1 9)
             if [[ "${release}" == "alpine" ]]; then
-                wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+                wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
             else
-                wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+                wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
             fi
 
             unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
@@ -2531,9 +2536,9 @@ nginxBlog() {
         rm -rf "${nginxStaticPath}*"
 
         if [[ "${release}" == "alpine" ]]; then
-            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
         else
-            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${randomNum}.zip"
+            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${randomNum}.zip"
         fi
 
         unzip -o "${nginxStaticPath}html${randomNum}.zip" -d "${nginxStaticPath}" >/dev/null
@@ -6728,6 +6733,7 @@ addNginx302() {
 }
 
 # Update camouflage station
+# fork-lock: 本函数内模板下载地址与伪装站菜单标题为本 fork 定制
 updateNginxBlog() {
     if [[ "${coreInstallType}" == "2" ]]; then
         echoContent red "\n ---> This feature only supports Xray-core core "
@@ -6742,15 +6748,17 @@ updateNginxBlog() {
     fi
     echoContent red "=============================================================="
     echoContent yellow "# If you need to customize, please manually copy the template file to ${nginxStaticPath} \n"
-    echoContent yellow "1.Newbie guide"
-    echoContent yellow "2.Game website"
-    echoContent yellow "3.Personal blog 01"
-    echoContent yellow "4.Enterprise Station"
-    echoContent yellow "5.Unlock encrypted music file template [https://github.com/ix64/unlock-music]"
-    echoContent yellow "6.mikutap[https://github.com/HFIProgramming/mikutap]"
-    echoContent yellow "7.Enterprise Station 02"
-    echoContent yellow "8.Personal blog 02"
-    echoContent yellow "9.404 automatically jumps to baidu"
+    # >>> fork-lock: 伪装站模板标题（对应 fodder/blog/unable/html1-9.zip）
+    echoContent yellow "1.weather"
+    echoContent yellow "2.music"
+    echoContent yellow "3.tech"
+    echoContent yellow "4.video"
+    echoContent yellow "5.game"
+    echoContent yellow "6.news"
+    echoContent yellow "7.finance"
+    echoContent yellow "8.traffic"
+    echoContent yellow "9.tools"
+    # <<< fork-lock
     echoContent yellow "10.302 redirect website"
     echoContent red "=============================================================="
     read -r -p "Please select:" selectInstallNginxBlogType
@@ -6793,9 +6801,9 @@ updateNginxBlog() {
         rm -rf "${nginxStaticPath}*"
 
         if [[ "${release}" == "alpine" ]]; then
-            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
+            wget -q -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
         else
-            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
+            wget -q "${wgetShowProgressStatus}" -P "${nginxStaticPath}" "https://raw.githubusercontent.com/sundys/v2ray/master/fodder/blog/unable/html${selectInstallNginxBlogType}.zip"
         fi
 
         unzip -o "${nginxStaticPath}html${selectInstallNginxBlogType}.zip" -d "${nginxStaticPath}" >/dev/null
@@ -7460,11 +7468,12 @@ removeUser() {
     manageAccount 1
 }
 # update script
+# fork-lock: 自更新下载地址指向本 fork (sundys/v2ray)
 updateV2RayAgent() {
     echoContent skyBlue "\nProgress$1/${totalProgress}: Update v2ray-agent script"
     local scriptTemp
     scriptTemp=$(mktemp /etc/v2ray-agent/.install.XXXXXX) || return 1
-    if ! wget -q -O "${scriptTemp}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/shell/install_en.sh" ||
+    if ! wget -q -O "${scriptTemp}" "https://raw.githubusercontent.com/sundys/v2ray/master/shell/install_en.sh" ||
         [[ ! -s "${scriptTemp}" ]] || ! bash -n "${scriptTemp}"; then
         rm -f "${scriptTemp}"
         echoContent red " ---> Script download or validation failed; keeping the current version"
@@ -7481,7 +7490,7 @@ updateV2RayAgent() {
     echoContent yellow " ---> Please manually execute [vasma] to open the script"
     echoContent green " ---> Current version: ${version}\n"
     echoContent yellow "If the update fails, please manually execute the following command\n"
-    echoContent skyBlue "wget -O /root/install.sh --no-check-certificate https://raw.githubusercontent.com/mack-a/v2ray-agent/master/shell/install_en.sh && chmod 700 /root/install.sh && /root/install.sh"
+    echoContent skyBlue "wget -O /root/install.sh --no-check-certificate https://raw.githubusercontent.com/sundys/v2ray/master/shell/install_en.sh && chmod 700 /root/install.sh && /root/install.sh"
     echo
     exit 0
 }
@@ -12069,6 +12078,7 @@ viewSubscriptionByUser() {
 }
 
 # Subscribe
+# fork-lock: 本函数内 sing-box.json 下载地址指向本 fork (sundys/v2ray)
 subscribe() (
     umask 022
     readInstallProtocolType
@@ -12189,9 +12199,9 @@ subscribe() (
 
                     echoContent skyBlue " ---> Download sing-box generic configuration file "
                     if [[ "${release}" == "alpine" ]]; then
-                        wget -O "${subscribePublishPath}/sing-box/${emailMd5}_download" -q "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/documents/sing-box.json" || return 1
+                        wget -O "${subscribePublishPath}/sing-box/${emailMd5}_download" -q "https://raw.githubusercontent.com/sundys/v2ray/master/documents/sing-box.json" || return 1
                     else
-                        wget -O "${subscribePublishPath}/sing-box/${emailMd5}_download" -q "${wgetShowProgressStatus}" "https://raw.githubusercontent.com/mack-a/v2ray-agent/master/documents/sing-box.json" || return 1
+                        wget -O "${subscribePublishPath}/sing-box/${emailMd5}_download" -q "${wgetShowProgressStatus}" "https://raw.githubusercontent.com/sundys/v2ray/master/documents/sing-box.json" || return 1
                     fi
 
                     jq --slurpfile nodes "/etc/v2ray-agent/subscribe_local/sing-box/${email}" '
@@ -12837,20 +12847,12 @@ menu() {
     echoContent red "\n=============================================================="
     echoContent green "Author: mack-a"
     echoContent green " Current version: v3.5.41"
-    echoContent green "Github：https://github.com/mack-a/v2ray-agent"
+    # fork-lock: 项目地址指向本 fork (sundys/v2ray)
+    echoContent green "Github：https://github.com/sundys/v2ray"
     echoContent green "Description: 8-in-1 coexistence script\c"
     showInstallStatus
     checkWgetShowProgress
-    echoContent red "\n============================ Promotion area================ ============"
-    echoContent red "                                              "
-    echoContent yellow "VPS buying guide "
-    echoContent green "https://www.v2ray-agent.com/archives/1679975663984"
-    echoContent yellow " Annual 10 USD budget VPS AS4837"
-    echoContent green "https://www.v2ray-agent.com/archives/racknerdtao-can-zheng-li-nian-fu-10mei-yuan"
-    echoContent yellow " Premium standard plans DMIT CN2-GIA"
-    echoContent green "https://www.v2ray-agent.com/archives/186cee7b-9459-4e57-b9b2-b07a4f36931c"
-    echoContent yellow "VPS probe : https://ping.v2ray-agent.com/"
-    echoContent red "                                              "
+    # fork-lock: 上游主菜单「推广区」广告段已删除（合并上游时请勿恢复）
     echoContent red "=============================================================="
     if [[ -n "${coreInstallType}" ]]; then
         echoContent yellow "1.Reinstall"
