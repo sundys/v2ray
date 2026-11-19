@@ -155,7 +155,8 @@ installTLS(){
     fi
 
     touch /etc/nginx/conf.d/6GFV1ES52V2.conf
-    echo "server {listen 80;server_name ${domain};root /usr/share/nginx/html;location ~ /.well-known {allow all;}location /test {return 200 '5NX2O9XQKP';}}" > /etc/nginx/conf.d/5NX2O9XQKP.conf
+    # fork-lock: nginx 站点目录改为 /var/www/html/
+    echo "server {listen 80;server_name ${domain};root /var/www/html;location ~ /.well-known {allow all;}location /test {return 200 '5NX2O9XQKP';}}" > /etc/nginx/conf.d/5NX2O9XQKP.conf
     local nginxStatus=1
     if isNginxRunning
     then

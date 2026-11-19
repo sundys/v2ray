@@ -24,17 +24,21 @@ FORK_REPO="sundys/v2ray"           # 本 fork
 UPSTREAM_REPO="mack-a/v2ray-agent" # 上游
 # 伪装站菜单 1-9 的标题，顺序对应 fodder/blog/unable/html1.zip … html9.zip
 MENU_TITLES=(weather music tech video game news finance traffic tools)
+# 伪装站（nginx 站点）目录：本 fork 改为 /var/www/html/
+SITE_DIR_UPSTREAM="/usr/share/nginx/html/"
+SITE_DIR_FORK="/var/www/html/"
 
-# 目标文件清单：路径|伪装站菜单|推广区广告|文件头说明|类型(sh=脚本需语法校验, md=文档)
-# 只有主脚本有整套定制；英文版有菜单与广告；其余文件仅需替换项目链接
+# 目标文件清单：路径|伪装站菜单|推广区广告|站点目录|文件头说明|类型(sh=脚本需语法校验, md=文档)
+# 只有主脚本有整套定制；英文版有菜单、广告与站点目录；其余文件仅需替换项目链接
 TARGET_SPECS=(
-    "install.sh|1|1|1|sh"
-    "shell/install_en.sh|1|1|1|sh"
-    "shell/docker_reality.sh|0|0|0|sh"
-    "shell/empty_login_history.sh|0|0|0|sh"
-    "shell/ufw_remove.sh|0|0|0|sh"
-    "README.md|0|0|0|md"
-    "documents/en/README_EN.md|0|0|0|md"
+    "install.sh|1|1|1|1|sh"
+    "shell/install_en.sh|1|1|1|1|sh"
+    "shell/init_tls.sh|0|0|1|0|sh"
+    "shell/docker_reality.sh|0|0|0|0|sh"
+    "shell/empty_login_history.sh|0|0|0|0|sh"
+    "shell/ufw_remove.sh|0|0|0|0|sh"
+    "README.md|0|0|0|0|md"
+    "documents/en/README_EN.md|0|0|0|0|md"
 )
 
 die() {
@@ -45,10 +49,10 @@ die() {
 command -v awk >/dev/null 2>&1 || die "缺少 awk"
 
 # -------------------------------------------------------------
-# 处理单个文件：fork_patch_file <路径> <菜单> <广告> <文件头> <类型 sh|md>
+# 处理单个文件：fork_patch_file <路径> <菜单> <广告> <站点目录> <文件头> <类型 sh|md>
 # -------------------------------------------------------------
 fork_patch_file() {
-    local target=$1 with_menu=$2 with_ad=$3 with_header=$4 kind=${5:-sh}
+    local target=$1 with_menu=$2 with_ad=$3 with_sitedir=$4 with_header=$5 kind=${6:-sh}
     local orig_bytes strip_bytes
     local work_dir work
 
@@ -90,6 +94,23 @@ fork_patch_file() {
     # 1. 项目链接：mack-a/v2ray-agent -> sundys/v2ray
     sed "s|${UPSTREAM_REPO}|${FORK_REPO}|g" "${work}" >"${work}.new"
     mv "${work}.new" "${work}"
+
+    # 1.1 伪装站（nginx 站点）目录：/usr/share/nginx/html/ -> /var/www/html/
+    #     带末尾斜杠与不带斜杠（如 init_tls.sh 的 root 行）两种写法都替换；
+    #     凡含该字面路径的非注释行，替换后都在其上方留 fork-lock 标记。
+    if [[ "${with_sitedir}" == "1" ]]; then
+        apply '
+{
+    if ($0 !~ /^[ \t]*#/ &&
+        (index($0, up_site) || index($0, up_site_ns) ||
+         index($0, fork_site) || index($0, fork_site_ns)))
+        print "    # fork-lock: nginx 站点目录改为 " fork_site
+    if (index($0, up_site)) gsub(up_site, fork_site)
+    if (index($0, up_site_ns)) gsub(up_site_ns, fork_site_ns)
+    print
+}' -v up_site="${SITE_DIR_UPSTREAM}" -v fork_site="${SITE_DIR_FORK}" \
+            -v up_site_ns="${SITE_DIR_UPSTREAM%/}" -v fork_site_ns="${SITE_DIR_FORK%/}"
+    fi
 
     # 2. 伪装站菜单 1-9 标题（定位「第 10 项 + 前 9 项依次编号」的菜单块，再整体重写）
     if [[ "${with_menu}" == "1" ]]; then
@@ -194,10 +215,11 @@ NR == 1 {
     print "# >>> fork-lock: " fork " 定制版（上游 " up "）"
     print "# 定制点均以 fork-lock 注释标记；合并上游后执行 fork-patch.sh 重新应用："
     print "#   1) 模板/脚本下载地址 -> " fork "  2) 伪装站菜单 1-9 标题  3) 移除主菜单推广区广告"
+    print "#   4) nginx 站点目录 -> " fork_site
     print "# <<< fork-lock"
     next
 }
-{ print }'
+{ print }' -v fork_site="${SITE_DIR_FORK}"
     fi
 
     # 6. 还原行尾、校验并落地
@@ -230,26 +252,26 @@ if [[ $# -gt 0 ]]; then
     # 指定文件时按文件名识别定制范围
     spec=""
     for entry in "${TARGET_SPECS[@]}"; do
-        IFS='|' read -r spec_path spec_menu spec_ad spec_header spec_kind <<<"${entry}"
+        IFS='|' read -r spec_path spec_menu spec_ad spec_sitedir spec_header spec_kind <<<"${entry}"
         if [[ "$(basename "${spec_path}")" == "$(basename "$1")" ]]; then
-            spec="${spec_menu}|${spec_ad}|${spec_header}|${spec_kind}"
+            spec="${spec_menu}|${spec_ad}|${spec_sitedir}|${spec_header}|${spec_kind}"
             break
         fi
     done
     [[ -n "${spec}" ]] || die "未知的定制范围：$1（请加入 TARGET_SPECS）"
-    IFS='|' read -r spec_menu spec_ad spec_header spec_kind <<<"${spec}"
-    fork_patch_file "$1" "${spec_menu}" "${spec_ad}" "${spec_header}" "${spec_kind}"
+    IFS='|' read -r spec_menu spec_ad spec_sitedir spec_header spec_kind <<<"${spec}"
+    fork_patch_file "$1" "${spec_menu}" "${spec_ad}" "${spec_sitedir}" "${spec_header}" "${spec_kind}"
     exit 0
 fi
 
 patched=0
 for entry in "${TARGET_SPECS[@]}"; do
-    IFS='|' read -r spec_path spec_menu spec_ad spec_header spec_kind <<<"${entry}"
+    IFS='|' read -r spec_path spec_menu spec_ad spec_sitedir spec_header spec_kind <<<"${entry}"
     if [[ ! -f "${SCRIPT_DIR}/${spec_path}" ]]; then
         echo "fork-patch: 跳过不存在的 ${spec_path}"
         continue
     fi
-    fork_patch_file "${SCRIPT_DIR}/${spec_path}" "${spec_menu}" "${spec_ad}" "${spec_header}" "${spec_kind}"
+    fork_patch_file "${SCRIPT_DIR}/${spec_path}" "${spec_menu}" "${spec_ad}" "${spec_sitedir}" "${spec_header}" "${spec_kind}"
     patched=$((patched + 1))
 done
 [[ "${patched}" -gt 0 ]] || die "没有可处理的文件"

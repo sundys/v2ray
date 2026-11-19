@@ -2,6 +2,7 @@
 # >>> fork-lock: sundys/v2ray 定制版（上游 mack-a/v2ray-agent）
 # 定制点均以 fork-lock 注释标记；合并上游后执行 fork-patch.sh 重新应用：
 #   1) 模板/脚本下载地址 -> sundys/v2ray  2) 伪装站菜单 1-9 标题  3) 移除主菜单推广区广告
+#   4) nginx 站点目录 -> /var/www/html/
 # <<< fork-lock
 # -------------------------------------------------------------
 # Detection area
@@ -285,7 +286,8 @@ initVar() {
     btDomain=
     # nginx configuration file path
     nginxConfigPath=/etc/nginx/conf.d/
-    nginxStaticPath=/usr/share/nginx/html/
+    # fork-lock: nginx 站点目录改为 /var/www/html/
+    nginxStaticPath=/var/www/html/
 
     # Is it a preview version?
     prereleaseStatus=false
@@ -1465,7 +1467,8 @@ mkdirTools() {
 
     mkdir -p /etc/v2ray-agent/sing-box/conf/config
 
-    mkdir -p /usr/share/nginx/html/
+    # fork-lock: nginx 站点目录改为 /var/www/html/
+    mkdir -p /var/www/html/
 }
 # 检测root
 checkRoot() {
